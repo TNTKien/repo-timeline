@@ -6,17 +6,20 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 
 interface TimelineProps {
   timelineData?: TimelineData;
   isLoading: boolean;
+  onLoadMore: (page: number, filter: string) => void;
+  isLoadingMore: boolean;
 }
 
-export function Timeline({ timelineData, isLoading }: TimelineProps) {
+export function Timeline({ timelineData, isLoading, onLoadMore, isLoadingMore }: TimelineProps) {
   const [filter, setFilter] = useState<string>("all");
   
   // Generate skeleton items for loading state
-  if (isLoading) {
+  if (isLoading && !timelineData) {
     return (
       <div className="space-y-4 w-full max-w-2xl mx-auto">
         <div className="flex justify-between items-center">
@@ -56,34 +59,25 @@ export function Timeline({ timelineData, isLoading }: TimelineProps) {
     );
   }
 
-  const { repository, items } = timelineData;
+  const { repository, items, pagination } = timelineData;
 
   // Filter items based on the selected filter
   const filteredItems = filter === "all" 
     ? items 
     : items.filter(item => item.type === filter);
 
-  // Format the date to a more readable format
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
+  const handleFilterChange = (newFilter: string) => {
+    setFilter(newFilter);
+    // Reset pagination and reload with the new filter if it changes
+    if (newFilter !== filter) {
+      onLoadMore(1, newFilter);
+    }
   };
 
-  // Get icon for the timeline item type
-  const getItemIcon = (type: string) => {
-    switch(type) {
-      case "commit":
-        return "💻";
-      case "pull_request":
-        return "🔄";
-      case "issue":
-        return "🐛";
-      default:
-        return "📝";
-    }
+  // Handle load more button click
+  const handleLoadMore = () => {
+    const nextPage = pagination.page + 1;
+    onLoadMore(nextPage, filter);
   };
 
   return (
@@ -94,7 +88,7 @@ export function Timeline({ timelineData, isLoading }: TimelineProps) {
         </h2>
         <Select
           value={filter}
-          onValueChange={setFilter}
+          onValueChange={handleFilterChange}
         >
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Filter by type" />
@@ -115,9 +109,25 @@ export function Timeline({ timelineData, isLoading }: TimelineProps) {
           </CardContent>
         </Card>
       ) : (
-        filteredItems.map((item) => (
-          <TimelineItemCard key={item.id} item={item} />
-        ))
+        <>
+          {filteredItems.map((item) => (
+            <TimelineItemCard key={item.id} item={item} />
+          ))}
+          
+          {pagination.hasNextPage && (
+            <div className="flex justify-center mt-6">
+              <Button 
+                onClick={handleLoadMore} 
+                disabled={isLoadingMore}
+                variant="outline"
+                size="lg"
+                className="w-full max-w-xs"
+              >
+                {isLoadingMore ? "Loading..." : "Load More"}
+              </Button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

@@ -11,20 +11,64 @@ import Image from "next/image";
 export default function Home() {
   const [timelineData, setTimelineData] = useState<TimelineData | undefined>();
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
+  const [currentRepo, setCurrentRepo] = useState<Repository | null>(null);
 
   const handleRepoSelect = async (repo: Repository) => {
     setIsLoading(true);
     setError("");
+    setCurrentRepo(repo);
     
     try {
-      const data = await fetchRepositoryTimeline(repo);
+      const data = await fetchRepositoryTimeline(repo, { page: 1 });
       setTimelineData(data);
     } catch (err) {
       console.error("Error fetching timeline:", err);
       setError("Failed to fetch repository timeline. Please check the repository name and try again.");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleLoadMore = async (page: number, filter: string) => {
+    if (!currentRepo) return;
+    
+    setIsLoadingMore(true);
+    
+    try {
+      const newData = await fetchRepositoryTimeline(currentRepo, { 
+        page,
+        filter: filter as 'all' | 'commit' | 'pull_request' | 'issue'
+      });
+      
+      if (page === 1) {
+        // If it's a reset (new filter), just set the new data
+        setTimelineData(newData);
+      } else {
+        // Otherwise, append the new items to the existing ones
+        setTimelineData(prevData => {
+          if (!prevData) return newData;
+          
+          // Combine and deduplicate items
+          const combinedItems = [...prevData.items, ...newData.items];
+          const uniqueItems = Array.from(
+            new Map(combinedItems.map(item => [item.id, item])).values()
+          ).sort((a, b) => 
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
+          
+          return {
+            ...newData,
+            items: uniqueItems,
+          };
+        });
+      }
+    } catch (err) {
+      console.error("Error fetching more timeline items:", err);
+      setError("Failed to load more timeline items.");
+    } finally {
+      setIsLoadingMore(false);
     }
   };
 
@@ -44,7 +88,12 @@ export default function Home() {
       
       <main className="flex-1 w-full max-w-4xl mx-auto">
         <ActivityChart timelineData={timelineData} isLoading={isLoading} />
-        <Timeline timelineData={timelineData} isLoading={isLoading} />
+        <Timeline 
+          timelineData={timelineData} 
+          isLoading={isLoading} 
+          onLoadMore={handleLoadMore}
+          isLoadingMore={isLoadingMore}
+        />
       </main>
       
       <footer className="mt-auto text-center text-sm text-muted-foreground py-4">

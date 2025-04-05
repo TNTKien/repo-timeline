@@ -17,9 +17,16 @@ export type TimelineItem = {
   number?: number;
 };
 
+export type PaginationData = {
+  page: number;
+  perPage: number;
+  hasNextPage: boolean;
+};
+
 export type TimelineData = {
   repository: Repository;
   items: TimelineItem[];
+  pagination: PaginationData;
 };
 
 /**
@@ -54,14 +61,26 @@ export function parseRepoString(repoString: string): Repository | null {
  */
 export async function fetchRepositoryTimeline(
   repository: Repository,
-  options: { limit?: number } = {}
+  options: { 
+    page?: number; 
+    perPage?: number;
+    filter?: 'all' | 'commit' | 'pull_request' | 'issue';
+  } = {}
 ): Promise<TimelineData> {
   const { owner, repo } = repository;
-  const limit = options.limit || 50;
+  const page = options.page || 1;
+  const perPage = options.perPage || 30;
+  const filter = options.filter || 'all';
   
-  const response = await fetch(
-    `/api/github/timeline?owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(repo)}&limit=${limit}`
-  );
+  const queryParams = new URLSearchParams({
+    owner: owner,
+    repo: repo,
+    page: page.toString(),
+    perPage: perPage.toString(),
+    filter: filter,
+  });
+  
+  const response = await fetch(`/api/github/timeline?${queryParams}`);
   
   if (!response.ok) {
     const error = await response.json();

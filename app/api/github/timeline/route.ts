@@ -10,44 +10,70 @@ export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const owner = searchParams.get('owner');
   const repo = searchParams.get('repo');
-  const limit = Number(searchParams.get('limit') || 50);
+  const page = Number(searchParams.get('page') || 1);
+  const perPage = Number(searchParams.get('perPage') || 30);
+  const filter = searchParams.get('filter') || 'all';
 
   if (!owner || !repo) {
     return NextResponse.json({ error: 'Missing owner or repo parameters' }, { status: 400 });
   }
 
   try {
-    // Fetch commits
-    const [commitsResponse, pullsResponse, issuesResponse] = await Promise.all([
-      octokit.repos.listCommits({
-        owner,
-        repo,
-        per_page: limit,
-      }),
-      octokit.pulls.list({
-        owner,
-        repo,
-        state: 'all',
-        per_page: limit,
-      }),
-      octokit.issues.listForRepo({
-        owner,
-        repo,
-        state: 'all',
-        per_page: limit,
-      }),
-    ]);
+    // Set up pagination parameters
+    const apiOptions = {
+      owner,
+      repo,
+      per_page: perPage,
+      page,
+    };
 
-    const commits = commitsResponse.data;
-    const pullRequests = pullsResponse.data;
-    const issues = issuesResponse.data;
+    // Determine which endpoints to fetch based on filter
+    const fetchCommits = filter === 'all' || filter === 'commit';
+    const fetchPulls = filter === 'all' || filter === 'pull_request';
+    const fetchIssues = filter === 'all' || filter === 'issue';
 
-    // Filter out pull requests from issues (they are included in the issues endpoint)
-    const filteredIssues = issues.filter(issue => !issue.pull_request);
+    // Prepare API calls based on filter
+    const apiCalls = [];
+    if (fetchCommits) {
+      apiCalls.push(octokit.repos.listCommits(apiOptions));
+    }
+    if (fetchPulls) {
+      apiCalls.push(octokit.pulls.list({
+        ...apiOptions,
+        state: 'all',
+      }));
+    }
+    if (fetchIssues) {
+      apiCalls.push(octokit.issues.listForRepo({
+        ...apiOptions,
+        state: 'all',
+      }));
+    }
+
+    // Execute API calls
+    const responses = await Promise.all(apiCalls);
+    
+    // Extract response data based on which endpoints were called
+    let commits: any[] = [];
+    let pullRequests: any[] = [];
+    let issues: any[] = [];
+    
+    let responseIndex = 0;
+    if (fetchCommits) {
+      commits = responses[responseIndex++].data;
+    }
+    if (fetchPulls) {
+      pullRequests = responses[responseIndex++].data;
+    }
+    if (fetchIssues) {
+      issues = responses[responseIndex++].data;
+      // Filter out pull requests from issues (they are included in the issues endpoint)
+      issues = issues.filter(issue => !issue.pull_request);
+    }
 
     // Convert to unified timeline items
     const timelineItems = [
-      ...commits.map(commit => ({
+      ...(fetchCommits ? commits.map(commit => ({
         id: commit.sha,
         type: "commit",
         title: commit.commit.message.split("\n")[0],
@@ -57,9 +83,9 @@ export async function GET(request: NextRequest) {
           login: commit.author?.login || commit.commit.author?.name || "unknown",
           avatarUrl: commit.author?.avatar_url || "",
         },
-      })),
+      })) : []),
       
-      ...pullRequests.map(pr => ({
+      ...(fetchPulls ? pullRequests.map(pr => ({
         id: `pr-${pr.id}`,
         type: "pull_request",
         title: pr.title,
@@ -71,9 +97,9 @@ export async function GET(request: NextRequest) {
         },
         state: pr.state,
         number: pr.number,
-      })),
+      })) : []),
       
-      ...filteredIssues.map(issue => ({
+      ...(fetchIssues ? issues.map(issue => ({
         id: `issue-${issue.id}`,
         type: "issue",
         title: issue.title,
@@ -85,7 +111,7 @@ export async function GET(request: NextRequest) {
         },
         state: issue.state,
         number: issue.number,
-      })),
+      })) : []),
     ];
     
     // Sort by created date descending
@@ -93,9 +119,27 @@ export async function GET(request: NextRequest) {
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
 
+    // Get pagination metadata from one of the responses
+    let hasNextPage = false;
+    if (responses.length > 0) {
+      // Check if any of the responses indicate more pages
+      for (const response of responses) {
+        const linkHeader = response.headers.link;
+        if (linkHeader && linkHeader.includes('rel="next"')) {
+          hasNextPage = true;
+          break;
+        }
+      }
+    }
+
     return NextResponse.json({
       repository: { owner, repo },
-      items: timelineItems.slice(0, limit),
+      items: timelineItems,
+      pagination: {
+        page,
+        perPage,
+        hasNextPage,
+      }
     });
   } catch (error: any) {
     console.error('GitHub API error:', error);
