@@ -1,11 +1,10 @@
 "use client";
 
-import { Repository, TimelineData } from "@/lib/github/api";
+import { Repository } from "@/lib/github/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { StarIcon, GitForkIcon, EyeIcon, BookIcon, CodeIcon, Calendar } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import {  BookIcon, CodeIcon } from "lucide-react";
+
 
 interface RepoHeaderProps {
   repository: Repository;

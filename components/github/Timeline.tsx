@@ -1,11 +1,10 @@
 "use client";
 
 import { TimelineData, TimelineItem } from "@/lib/github/api";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState } from "react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { 
@@ -18,7 +17,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { motion } from "framer-motion";
-import { ExternalLink, GitCommit, GitPullRequest, MessageCircle, Filter, CheckIcon, SlidersHorizontal } from "lucide-react";
+import { ExternalLink, GitCommit, GitPullRequest, MessageCircle, CheckIcon, SlidersHorizontal } from "lucide-react";
 
 interface TimelineProps {
   timelineData?: TimelineData;

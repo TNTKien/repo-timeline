@@ -8,7 +8,6 @@ import { RepoHeader } from "@/components/github/RepoHeader";
 import { ScrollToTopButton } from "@/components/ui/scroll-to-top-button";
 import { Repository, TimelineData, fetchRepositoryTimeline } from "@/lib/github/api";
 import { ThemeSwitcher } from "@/components/theme/theme-switcher";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { GitBranchIcon, BarChartIcon, ClockIcon, AlertCircle } from "lucide-react";
@@ -94,7 +93,7 @@ export default function Home() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="text-center space-y-4 mb-8"
+            className="text-center space-y-4 mb-4"
           >
             <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-transparent bg-clip-text">
               GitHub Repository Timeline
@@ -190,44 +189,6 @@ export default function Home() {
           )}
         </main>
       </div>
-      
-      <footer className="border-t border-border/40 py-6 mt-8">
-        <div className="container max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-            <p className="text-sm text-muted-foreground">
-              Built with Next.js, shadcn/ui and the GitHub API
-            </p>
-            <div className="flex items-center gap-2">
-              <a 
-                href="https://github.com" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-              >
-                GitHub
-              </a>
-              <span className="text-muted-foreground/40">•</span>
-              <a 
-                href="https://nextjs.org" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Next.js
-              </a>
-              <span className="text-muted-foreground/40">•</span>
-              <a 
-                href="https://ui.shadcn.com" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-              >
-                shadcn/ui
-              </a>
-            </div>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }
